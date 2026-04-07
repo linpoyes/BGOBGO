@@ -699,7 +699,7 @@ function predictNumbers(data, strategy = 'balanced', count = 10, analysisRange =
 
 // ===== COMPONENTS =====
 
-function Header({ isConnected }) {
+function Header() {
   return (
     <header className="app-header">
       <div className="header-inner">
@@ -709,10 +709,6 @@ function Header({ isConnected }) {
             <h1>BINGO BINGO</h1>
             <span>賓果賓果預測系統 v1.0</span>
           </div>
-        </div>
-        <div className="gas-status">
-          <div className={`status-dot ${isConnected ? 'connected' : ''}`} />
-          {isConnected ? 'Google Sheets 已連線' : '未連線試算表'}
         </div>
       </div>
     </header>
@@ -1218,58 +1214,26 @@ function App() {
   const [data, setData] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Sync from GAS — 用動態 script tag 載入避免 CORS/redirect 問題
-  const [debugMsg, setDebugMsg] = useState('載入中...');
+  // Sync from GAS
   const syncData = useCallback(() => {
-    if (!GAS_URL) { setDebugMsg('GAS_URL 為空'); return; }
-    setDebugMsg('正在連線 GAS...');
-    
-    // 建立一個隱藏的 iframe 來取得 GAS 資料
-    // 改用 XMLHttpRequest 試試（某些情況下比 fetch 更能處理 redirect）
+    if (!GAS_URL) return;
     var xhr = new XMLHttpRequest();
     xhr.open('GET', GAS_URL + '?action=getData&limit=500&_t=' + Date.now(), true);
     xhr.onload = function() {
       try {
-        setDebugMsg('XHR status: ' + xhr.status + ' / 長度: ' + xhr.responseText.length);
         var json = JSON.parse(xhr.responseText);
         if (json.data && json.data.length > 0) {
           setData(json.data);
           setIsConnected(true);
-          setDebugMsg('✅ 已連線，共 ' + json.data.length + ' 期');
         } else {
-          setDebugMsg('data 為空');
           setIsConnected(false);
         }
       } catch(e) {
-        setDebugMsg('解析錯誤: ' + e.message);
         setIsConnected(false);
       }
     };
     xhr.onerror = function() {
-      setDebugMsg('XHR 也失敗，改用 script tag...');
-      // Fallback: 用 script tag 繞過 CORS
-      var callbackName = '_bingoCb_' + Date.now();
-      window[callbackName] = function(jsonStr) {
-        try {
-          var json = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
-          if (json.data && json.data.length > 0) {
-            setData(json.data);
-            setIsConnected(true);
-            setDebugMsg('✅ script tag 連線成功，共 ' + json.data.length + ' 期');
-          }
-        } catch(e) {
-          setDebugMsg('script tag 解析錯誤: ' + e.message);
-        }
-        delete window[callbackName];
-      };
-      var s = document.createElement('script');
-      s.src = GAS_URL + '?action=getData&limit=500&callback=' + callbackName;
-      s.onerror = function() { 
-        setDebugMsg('所有方式都失敗'); 
-        setIsConnected(false);
-        delete window[callbackName];
-      };
-      document.head.appendChild(s);
+      setIsConnected(false);
     };
     xhr.send();
   }, []);
@@ -1299,8 +1263,7 @@ function App() {
 
   return (
     <div>
-      <Header isConnected={isConnected} />
-      <div style={{maxWidth:1200,margin:'0 auto',padding:'8px 20px',fontSize:11,color:'var(--accent-gold)',fontFamily:'JetBrains Mono,monospace',background:'rgba(246,195,67,0.08)',borderRadius:8}}>{debugMsg}</div>
+      <Header />
       <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} />
       <div className="main-content">
         {activeTab === 'dashboard' && <DashboardTab data={data} />}
