@@ -1061,7 +1061,7 @@ function HistoryTab({ data }) {
 body{font-family:'Noto Sans TC',sans-serif;background:#0a0e1a;color:#f1f5f9;padding:20px;position:relative}
 h1{font-size:18px;color:#f6c343;margin-bottom:4px}
 .sub{font-size:11px;color:#94a3b8;margin-bottom:16px}
-table{width:100%;border-collapse:collapse;font-size:11px;position:relative;z-index:1}
+table{width:100%;border-collapse:collapse;font-size:11px}
 th{background:#1a2035;color:#f6c343;padding:8px 4px;text-align:center;border-bottom:2px solid #f6c343;font-weight:700}
 td{padding:6px 4px;text-align:center;border-bottom:1px solid #1e293b}
 tr:nth-child(even) td{background:#111827}
@@ -1069,12 +1069,11 @@ tr:nth-child(even) td{background:#111827}
 .super{color:#f6c343;font-weight:900;font-size:13px}
 .big{color:#f87171} .small{color:#22d3ee}
 .odd{color:#f472b6} .even{color:#34d399}
-.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:60px;font-weight:900;color:rgba(255,215,0,0.06);white-space:nowrap;pointer-events:none;z-index:0;letter-spacing:10px}
-@media print{body{background:#fff;color:#000}th{background:#333;color:#fff}td{border-bottom:1px solid #ccc}tr:nth-child(even) td{background:#f5f5f5}.big,.small,.odd,.even,.super{color:#000}.watermark{color:rgba(0,0,0,0.06)}}
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:60px;font-weight:900;color:rgba(255,215,0,0.08);white-space:nowrap;pointer-events:none;z-index:9999;letter-spacing:10px}
+@media print{body{background:#fff;color:#000}th{background:#333;color:#fff}td{border-bottom:1px solid #ccc}tr:nth-child(even) td{background:#f5f5f5}.big,.small,.odd,.even,.super{color:#000}.watermark{color:rgba(0,0,0,0.08)}}
 </style></head><body>
 <div class="watermark">僅供參考 理性投注</div>
 <h1>BINGO BINGO 開獎歷史紀錄</h1>
-<div class="sub">共 ${displayData.length} 期</div>
 <table><thead><tr>
 <th>期號</th><th>開獎時間</th><th>開獎號碼</th><th>超級</th><th>大小</th><th>單雙</th><th>總和</th>
 </tr></thead><tbody>`;
