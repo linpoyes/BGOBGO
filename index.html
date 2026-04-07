@@ -1223,6 +1223,10 @@ function App() {
       try {
         var json = JSON.parse(xhr.responseText);
         if (json.data && json.data.length > 0) {
+          // 確保最新期號在前面
+          json.data.sort(function(a, b) {
+            return b.period.localeCompare(a.period);
+          });
           setData(json.data);
           setIsConnected(true);
         } else {
