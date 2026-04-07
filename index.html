@@ -699,7 +699,7 @@ function predictNumbers(data, strategy = 'balanced', count = 10, analysisRange =
 
 // ===== COMPONENTS =====
 
-function Header() {
+function Header({ onRefresh, refreshing }) {
   return (
     <header className="app-header">
       <div className="header-inner">
@@ -710,6 +710,10 @@ function Header() {
             <span>賓果賓果預測系統 v1.0</span>
           </div>
         </div>
+        <button className="btn btn-primary" onClick={onRefresh} disabled={refreshing}
+          style={{padding: '8px 16px', fontSize: 12}}>
+          {refreshing ? '⏳ 抓取中...' : '🔄 更新開獎'}
+        </button>
       </div>
     </header>
   );
@@ -1213,50 +1217,48 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [data, setData] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Sync from GAS
-  const syncData = useCallback(() => {
+  // 載入資料（只讀取）
+  const syncData = useCallback(function(actionType) {
     if (!GAS_URL) return;
+    var action = actionType || 'getData';
+    if (action === 'fetchAndGet') setRefreshing(true);
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', GAS_URL + '?action=getData&limit=500&_t=' + Date.now(), true);
+    xhr.open('GET', GAS_URL + '?action=' + action + '&limit=500&_t=' + Date.now(), true);
     xhr.onload = function() {
       try {
         var json = JSON.parse(xhr.responseText);
         if (json.data && json.data.length > 0) {
-          // 確保最新期號在前面
           json.data.sort(function(a, b) {
             return b.period.localeCompare(a.period);
           });
           setData(json.data);
           setIsConnected(true);
-        } else {
-          setIsConnected(false);
         }
-      } catch(e) {
-        setIsConnected(false);
-      }
+      } catch(e) {}
+      setRefreshing(false);
     };
     xhr.onerror = function() {
       setIsConnected(false);
+      setRefreshing(false);
     };
     xhr.send();
   }, []);
 
-  // Init: try GAS first, fallback to demo
+  // 客人按更新：先抓新資料再回傳
+  const handleRefresh = useCallback(function() {
+    syncData('fetchAndGet');
+  }, [syncData]);
+
+  // 初始載入
   useEffect(() => {
     if (GAS_URL) {
-      syncData();
+      syncData('getData');
     } else {
       setData(generateDemoData(200));
     }
   }, []);
-
-  // Auto refresh every 5 minutes if connected
-  useEffect(() => {
-    if (!GAS_URL) return;
-    const timer = setInterval(syncData, 5 * 60 * 1000);
-    return () => clearInterval(timer);
-  }, [syncData]);
 
   const tabs = [
     { id: 'dashboard', label: '總覽', icon: '📊' },
@@ -1267,7 +1269,7 @@ function App() {
 
   return (
     <div>
-      <Header />
+      <Header onRefresh={handleRefresh} refreshing={refreshing} />
       <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} />
       <div className="main-content">
         {activeTab === 'dashboard' && <DashboardTab data={data} />}
