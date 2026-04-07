@@ -1218,31 +1218,60 @@ function App() {
   const [data, setData] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Sync from GAS
+  // Sync from GAS — 用動態 script tag 載入避免 CORS/redirect 問題
   const [debugMsg, setDebugMsg] = useState('載入中...');
   const syncData = useCallback(() => {
     if (!GAS_URL) { setDebugMsg('GAS_URL 為空'); return; }
     setDebugMsg('正在連線 GAS...');
-    fetch(GAS_URL + '?action=getData&limit=5&_t=' + Date.now())
-      .then(function(resp) {
-        setDebugMsg('HTTP ' + resp.status + ' / type: ' + resp.type);
-        return resp.text();
-      })
-      .then(function(text) {
-        setDebugMsg('收到 ' + text.length + ' 字: ' + text.substring(0, 80));
-        var json = JSON.parse(text);
+    
+    // 建立一個隱藏的 iframe 來取得 GAS 資料
+    // 改用 XMLHttpRequest 試試（某些情況下比 fetch 更能處理 redirect）
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', GAS_URL + '?action=getData&limit=500&_t=' + Date.now(), true);
+    xhr.onload = function() {
+      try {
+        setDebugMsg('XHR status: ' + xhr.status + ' / 長度: ' + xhr.responseText.length);
+        var json = JSON.parse(xhr.responseText);
         if (json.data && json.data.length > 0) {
           setData(json.data);
           setIsConnected(true);
+          setDebugMsg('✅ 已連線，共 ' + json.data.length + ' 期');
         } else {
-          setDebugMsg('data 為空陣列');
+          setDebugMsg('data 為空');
           setIsConnected(false);
         }
-      })
-      .catch(function(e) {
-        setDebugMsg('錯誤: ' + e.message);
+      } catch(e) {
+        setDebugMsg('解析錯誤: ' + e.message);
         setIsConnected(false);
-      });
+      }
+    };
+    xhr.onerror = function() {
+      setDebugMsg('XHR 也失敗，改用 script tag...');
+      // Fallback: 用 script tag 繞過 CORS
+      var callbackName = '_bingoCb_' + Date.now();
+      window[callbackName] = function(jsonStr) {
+        try {
+          var json = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+          if (json.data && json.data.length > 0) {
+            setData(json.data);
+            setIsConnected(true);
+            setDebugMsg('✅ script tag 連線成功，共 ' + json.data.length + ' 期');
+          }
+        } catch(e) {
+          setDebugMsg('script tag 解析錯誤: ' + e.message);
+        }
+        delete window[callbackName];
+      };
+      var s = document.createElement('script');
+      s.src = GAS_URL + '?action=getData&limit=500&callback=' + callbackName;
+      s.onerror = function() { 
+        setDebugMsg('所有方式都失敗'); 
+        setIsConnected(false);
+        delete window[callbackName];
+      };
+      document.head.appendChild(s);
+    };
+    xhr.send();
   }, []);
 
   // Init: try GAS first, fallback to demo
