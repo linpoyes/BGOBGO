@@ -265,10 +265,10 @@ body::before {
 }
 
 .ball.cold {
-  background: linear-gradient(135deg, #2d1b69, #4c1d95);
-  color: #c4b5fd;
-  border-color: #7c3aed;
-  box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+  background: linear-gradient(135deg, #e0f2fe, #7dd3fc, #38bdf8);
+  color: #0c4a6e;
+  border-color: #7dd3fc;
+  box-shadow: 0 0 12px rgba(125, 211, 252, 0.5), 0 0 4px rgba(255, 255, 255, 0.3);
 }
 
 .ball.selected {
@@ -730,8 +730,8 @@ function predictNumbers(data, strategy = 'balanced', count = 10, analysisRange =
 function Header({ onRefresh, refreshing }) {
   const [textIdx, setTextIdx] = useState(0);
   
-  const idleTexts = ['金盆洗手', '更新開獎', '試試手氣', '財神快來'];
-  const loadingTexts = ['開獎中...', '金盆洗手...', '財神降臨...', '發財啦...'];
+  const idleTexts = ['更新開獎', '試試手氣', '財神快來'];
+  const loadingTexts = ['開獎中...', '財神降臨...', '發財啦...'];
   
   useEffect(() => {
     const timer = setInterval(() => {
@@ -798,18 +798,32 @@ function TabBar({ tabs, active, onChange }) {
 // ===== TAB: Dashboard =====
 function DashboardTab({ data }) {
   const latest = data[0];
-  const freq = useMemo(() => analyzeFrequency(data, 30), [data]);
+  const [hotRange, setHotRange] = useState(30);
+  const [bigRange, setBigRange] = useState(20);
+  const [oddRange, setOddRange] = useState(20);
+  
+  const freq = useMemo(() => analyzeFrequency(data, hotRange), [data, hotRange]);
   const { hot, cold, warm, avg } = useMemo(() => getHotCold(freq), [freq]);
   
-  // Big/Small and Odd/Even streaks
-  const bigCount = data.slice(0, 20).filter(d => d.bigSmall === '大').length;
-  const oddCount = data.slice(0, 20).filter(d => d.oddEven === '單').length;
+  const bigCount = data.slice(0, bigRange).filter(d => d.bigSmall === '大').length;
+  const oddCount = data.slice(0, oddRange).filter(d => d.oddEven === '單').length;
 
   const getBallClass = (num) => {
     if (hot.includes(num)) return 'hot';
     if (cold.includes(num)) return 'cold';
     return '';
   };
+
+  const rangeSelector = (value, onChange) => (
+    <select value={value} onChange={e => onChange(+e.target.value)}
+      style={{padding:'2px 6px',background:'var(--bg-secondary)',border:'1px solid var(--border-gold)',
+        borderRadius:4,color:'var(--accent-gold)',fontSize:10,outline:'none',marginLeft:4}}>
+      <option value="5">近5期</option>
+      <option value="10">近10期</option>
+      <option value="20">近20期</option>
+      <option value="50">近50期</option>
+    </select>
+  );
 
   return (
     <div>
@@ -847,15 +861,15 @@ function DashboardTab({ data }) {
         </div>
         <div className="stat-box">
           <div className="stat-value">{hot.length}</div>
-          <div className="stat-label">熱號數量 (近30期)</div>
+          <div className="stat-label">熱號數量 {rangeSelector(hotRange, setHotRange)}</div>
         </div>
         <div className="stat-box">
-          <div className="stat-value">{bigCount}/{20 - bigCount}</div>
-          <div className="stat-label">大/小 (近20期)</div>
+          <div className="stat-value">{bigCount}/{bigRange - bigCount}</div>
+          <div className="stat-label">大/小 {rangeSelector(bigRange, setBigRange)}</div>
         </div>
         <div className="stat-box">
-          <div className="stat-value">{oddCount}/{20 - oddCount}</div>
-          <div className="stat-label">單/雙 (近20期)</div>
+          <div className="stat-value">{oddCount}/{oddRange - oddCount}</div>
+          <div className="stat-label">單/雙 {rangeSelector(oddRange, setOddRange)}</div>
         </div>
       </div>
 
@@ -863,7 +877,7 @@ function DashboardTab({ data }) {
       <div className="card">
         <div className="card-title">
           <span className="icon" style={{background: 'rgba(34,211,238,0.15)', color: 'var(--accent-cyan)'}}>📊</span>
-          號碼溫度 (近30期)
+          號碼溫度 (近{hotRange}期)
         </div>
         <div className="ball-grid">
           {Array.from({length: 80}, (_, i) => i + 1).map(n => (
@@ -878,7 +892,7 @@ function DashboardTab({ data }) {
             熱號 ({hot.length}個)
           </div>
           <div className="legend-item">
-            <div className="legend-dot" style={{background: 'linear-gradient(135deg, #2d1b69, #7c3aed)'}} />
+            <div className="legend-dot" style={{background: 'linear-gradient(135deg, #e0f2fe, #38bdf8)'}} />
             冷號 ({cold.length}個)
           </div>
           <div className="legend-item">
@@ -894,8 +908,8 @@ function DashboardTab({ data }) {
 // ===== TAB: Prediction =====
 function PredictionTab({ data }) {
   const [strategy, setStrategy] = useState('balanced');
-  const [pickCount, setPickCount] = useState(10);
-  const [analysisRange, setAnalysisRange] = useState(30);
+  const [pickCount, setPickCount] = useState(5);
+  const [analysisRange, setAnalysisRange] = useState(10);
   const [predicted, setPredicted] = useState(null);
   const [key, setKey] = useState(0);
 
@@ -930,10 +944,10 @@ function PredictionTab({ data }) {
         </div>
         <div className="input-row">
           <select value={analysisRange} onChange={e => setAnalysisRange(+e.target.value)}>
-            <option value="30">📊 分析近 30 期</option>
+            <option value="5">📊 分析近 5 期</option>
+            <option value="10">📊 分析近 10 期</option>
+            <option value="20">📊 分析近 20 期</option>
             <option value="50">📊 分析近 50 期</option>
-            <option value="100">📊 分析近 100 期</option>
-            <option value="200">📊 分析近 200 期</option>
           </select>
         </div>
         
@@ -985,7 +999,7 @@ function TrendCard({ data }) {
           <option value="5">近 5 期</option>
           <option value="10">近 10 期</option>
           <option value="20">近 20 期</option>
-          <option value="40">近 40 期</option>
+          <option value="50">近 50 期</option>
         </select>
       </div>
       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12}}>
@@ -1207,7 +1221,7 @@ function FrequencyTab({ data }) {
               <div className="freq-bar">
                 <div className="freq-bar-fill" style={{
                   width: `${Math.max((cnt / maxFreq) * 100, 3)}%`,
-                  background: `linear-gradient(90deg, #2d1b69, #7c3aed)`,
+                  background: `linear-gradient(90deg, #e0f2fe, #38bdf8)`,
                 }}>
                   {cnt}
                 </div>
