@@ -73,13 +73,12 @@ body::after {
 .app-header {
   background: linear-gradient(135deg, #1a1520 0%, #0f0d18 50%, #1a1520 100%);
   border-bottom: 1px solid var(--border-gold);
-  padding: 0 20px;
+  padding: 14px 20px;
   position: sticky;
   top: 0;
   z-index: 100;
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 20px rgba(255, 215, 0, 0.08);
-  overflow: hidden;
 }
 
 .header-inner {
@@ -88,8 +87,6 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
-  position: relative;
 }
 
 .logo-area {
@@ -761,12 +758,8 @@ function Header({ onRefresh, refreshing }) {
   return (
     <header className="app-header">
       <div className="header-inner">
-        <div className="logo-area" style={{position:'relative',overflow:'hidden',padding:'8px 0'}}>
-          <img src="logo.png" alt="" style={{
-            height: 80, opacity: 0.12, position: 'absolute', left: -15, top: '50%',
-            transform: 'translateY(-50%)', filter: 'blur(1px)',
-          }} />
-          <div className="logo-text" style={{position:'relative',zIndex:1}}>
+        <div className="logo-area">
+          <div className="logo-text">
             <h1>BINGO BINGO</h1>
           </div>
         </div>
