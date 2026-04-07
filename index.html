@@ -1222,8 +1222,12 @@ function App() {
   const syncData = useCallback(async () => {
     if (!GAS_URL) return;
     try {
-      const resp = await fetch(`${GAS_URL}?action=getData&limit=500`);
-      const json = await resp.json();
+      const resp = await fetch(`${GAS_URL}?action=getData&limit=500`, {
+        redirect: 'follow',
+        headers: { 'Accept': 'application/json' }
+      });
+      const text = await resp.text();
+      const json = JSON.parse(text);
       if (json.data && json.data.length > 0) {
         setData(json.data);
         setIsConnected(true);
@@ -1231,6 +1235,29 @@ function App() {
       }
     } catch (e) {
       console.error('Sync error:', e);
+      // Fallback: try JSONP-style via script tag
+      try {
+        const cbName = '_bingoCb' + Date.now();
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          window[cbName] = (json) => {
+            if (json.data && json.data.length > 0) {
+              setData(json.data);
+              setIsConnected(true);
+            }
+            delete window[cbName];
+            document.head.removeChild(script);
+            resolve();
+          };
+          script.onerror = () => { delete window[cbName]; reject(); };
+          script.src = `${GAS_URL}?action=getData&limit=500&callback=${cbName}`;
+          document.head.appendChild(script);
+          setTimeout(reject, 10000);
+        });
+        return;
+      } catch(e2) {
+        console.error('JSONP fallback also failed:', e2);
+      }
     }
     setIsConnected(false);
   }, []);
