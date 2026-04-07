@@ -598,7 +598,7 @@ function generateDemoData(count = 50) {
     const total = nums.reduce((s, n) => s + n, 0);
     data.push({
       period: `115${String(4000 - i).padStart(5, '0')}`,
-      date: new Date(now - i * 5 * 60000).toLocaleString('zh-TW'),
+      date: (() => { const d = new Date(now - i * 5 * 60000); const roc = d.getFullYear() - 1911; return roc + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); })(),
       numbers: nums,
       superNumber: superNum,
       total,
