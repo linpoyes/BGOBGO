@@ -1222,10 +1222,9 @@ function App() {
   const syncData = useCallback(async () => {
     if (!GAS_URL) return;
     try {
-      const resp = await fetch(`${GAS_URL}?action=getData&limit=500`, {
-        redirect: 'follow',
-        headers: { 'Accept': 'application/json' }
-      });
+      // GAS redirect 會從 script.google.com → script.googleusercontent.com
+      // 用最簡單的 fetch，不加任何 header 避免觸發 CORS preflight
+      const resp = await fetch(`${GAS_URL}?action=getData&limit=500&_t=${Date.now()}`);
       const text = await resp.text();
       const json = JSON.parse(text);
       if (json.data && json.data.length > 0) {
@@ -1234,30 +1233,7 @@ function App() {
         return;
       }
     } catch (e) {
-      console.error('Sync error:', e);
-      // Fallback: try JSONP-style via script tag
-      try {
-        const cbName = '_bingoCb' + Date.now();
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          window[cbName] = (json) => {
-            if (json.data && json.data.length > 0) {
-              setData(json.data);
-              setIsConnected(true);
-            }
-            delete window[cbName];
-            document.head.removeChild(script);
-            resolve();
-          };
-          script.onerror = () => { delete window[cbName]; reject(); };
-          script.src = `${GAS_URL}?action=getData&limit=500&callback=${cbName}`;
-          document.head.appendChild(script);
-          setTimeout(reject, 10000);
-        });
-        return;
-      } catch(e2) {
-        console.error('JSONP fallback also failed:', e2);
-      }
+      console.error('Fetch error:', e);
     }
     setIsConnected(false);
   }, []);
