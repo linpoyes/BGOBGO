@@ -735,7 +735,7 @@ function Header({ onRefresh, refreshing }) {
   
   useEffect(() => {
     const timer = setInterval(() => {
-      setTextIdx(prev => (prev + 1) % 4);
+      setTextIdx(prev => (prev + 1) % 3);
     }, 2000);
     return () => clearInterval(timer);
   }, []);
@@ -744,7 +744,6 @@ function Header({ onRefresh, refreshing }) {
     <header className="app-header">
       <div className="header-inner">
         <div className="logo-area">
-          <div className="logo-icon" style={{width: 48, height: 48, fontSize: 11, letterSpacing: 1}}>BINGO</div>
           <div className="logo-text">
             <h1>BINGO BINGO</h1>
           </div>
@@ -1294,10 +1293,10 @@ function App() {
       <Header onRefresh={handleRefresh} refreshing={refreshing} />
       <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} />
       <div className="main-content">
-        {activeTab === 'dashboard' && <DashboardTab data={data} />}
-        {activeTab === 'prediction' && <PredictionTab data={data} />}
-        {activeTab === 'history' && <HistoryTab data={data} />}
-        {activeTab === 'frequency' && <FrequencyTab data={data} />}
+        <div style={{display: activeTab === 'dashboard' ? 'block' : 'none'}}><DashboardTab data={data} /></div>
+        <div style={{display: activeTab === 'prediction' ? 'block' : 'none'}}><PredictionTab data={data} /></div>
+        <div style={{display: activeTab === 'history' ? 'block' : 'none'}}><HistoryTab data={data} /></div>
+        <div style={{display: activeTab === 'frequency' ? 'block' : 'none'}}><FrequencyTab data={data} /></div>
       </div>
     </div>
   );
