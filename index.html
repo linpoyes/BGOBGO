@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BINGO BINGO 賓果預測系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+:root {
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #111827;
+  --bg-card: #1a2035;
+  --bg-card-hover: #1f2847;
+  --accent-gold: #f6c343;
+  --accent-cyan: #22d3ee;
+  --accent-pink: #f472b6;
+  --accent-green: #34d399;
+  --accent-red: #f87171;
+  --accent-purple: #a78bfa;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-dim: #475569;
+  --border: #1e293b;
+  --glow-gold: rgba(246, 195, 67, 0.3);
+  --glow-cyan: rgba(34, 211, 238, 0.2);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(34, 211, 238, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(246, 195, 67, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root { position: relative; z-index: 1; }
+
+.app-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1a1040 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--accent-gold), #e67e22);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  font-size: 16px;
+  color: #000;
+  box-shadow: 0 0 20px var(--glow-gold);
+}
+
+.logo-text h1 {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--accent-gold), var(--accent-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 2px;
+}
+
+.logo-text span {
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+
+.gas-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-red);
+}
+
+.status-dot.connected {
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Tabs */
+.tab-bar {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 20px 0;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab-bar::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.tab-btn:hover { color: var(--text-primary); background: var(--bg-card); }
+
+.tab-btn.active {
+  color: var(--accent-gold);
+  background: var(--bg-card);
+  border-bottom: 2px solid var(--accent-gold);
+}
+
+/* Main content */
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 20px 40px;
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title .icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* Bingo Ball Grid */
+.ball-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+
+.ball {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.ball:hover {
+  transform: scale(1.1);
+  border-color: var(--accent-cyan);
+}
+
+.ball.hot {
+  background: linear-gradient(135deg, #dc2626, #f97316);
+  color: #fff;
+  border-color: #f97316;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
+}
+
+.ball.warm {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  color: #000;
+  border-color: #f59e0b;
+}
+
+.ball.cold {
+  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  color: #fff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.ball.selected {
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 0 15px var(--glow-gold) !important;
+  transform: scale(1.15);
+}
+
+.ball.drawn {
+  background: linear-gradient(135deg, var(--accent-gold), #e67e22);
+  color: #000;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 12px var(--glow-gold);
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+}
+
+/* History table */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.history-table th {
+  background: var(--bg-secondary);
+  padding: 10px 8px;
+  text-align: left;
+  color: var(--text-secondary);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+}
+
+.history-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.history-table tr:hover td {
+  background: var(--bg-card-hover);
+}
+
+.drawn-nums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.drawn-nums .mini-ball {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.drawn-nums .mini-ball.super {
+  background: linear-gradient(135deg, var(--accent-gold), #e67e22);
+  color: #000;
+  border-color: var(--accent-gold);
+}
+
+/* Prediction Panel */
+.predict-result {
+  background: linear-gradient(135deg, #0f172a, #1a1040);
+  border: 1px solid var(--accent-purple);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.predict-nums {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.predict-nums .p-ball {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent-gold), #e67e22);
+  color: #000;
+  box-shadow: 0 0 15px var(--glow-gold);
+  animation: popIn 0.3s ease-out backwards;
+}
+
+@keyframes popIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.predict-nums .p-ball:nth-child(1) { animation-delay: 0s; }
+.predict-nums .p-ball:nth-child(2) { animation-delay: 0.05s; }
+.predict-nums .p-ball:nth-child(3) { animation-delay: 0.1s; }
+.predict-nums .p-ball:nth-child(4) { animation-delay: 0.15s; }
+.predict-nums .p-ball:nth-child(5) { animation-delay: 0.2s; }
+.predict-nums .p-ball:nth-child(6) { animation-delay: 0.25s; }
+.predict-nums .p-ball:nth-child(7) { animation-delay: 0.3s; }
+.predict-nums .p-ball:nth-child(8) { animation-delay: 0.35s; }
+.predict-nums .p-ball:nth-child(9) { animation-delay: 0.4s; }
+.predict-nums .p-ball:nth-child(10) { animation-delay: 0.45s; }
+
+/* Stats */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.stat-box {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+.stat-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 28px;
+  font-weight: 900;
+  background: linear-gradient(90deg, var(--accent-gold), var(--accent-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Frequency bar */
+.freq-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.freq-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  width: 24px;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.freq-bar {
+  flex: 1;
+  height: 18px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.freq-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #000;
+}
+
+/* Input area */
+.input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.input-row input, .input-row select {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-row input:focus, .input-row select:focus {
+  border-color: var(--accent-cyan);
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-gold), #e67e22);
+  color: #000;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 20px var(--glow-gold);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent-cyan);
+}
+
+.btn-cyan {
+  background: linear-gradient(135deg, var(--accent-cyan), #0891b2);
+  color: #000;
+}
+
+/* Settings */
+.settings-group {
+  margin-bottom: 16px;
+}
+
+.settings-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.settings-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  outline: none;
+}
+
+.settings-input:focus { border-color: var(--accent-cyan); }
+
+.notice {
+  background: rgba(246, 195, 67, 0.08);
+  border: 1px solid rgba(246, 195, 67, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 11px;
+  color: var(--accent-gold);
+  line-height: 1.6;
+}
+
+/* Scrollable table wrapper */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .ball-grid { grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  .ball { font-size: 11px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .header-inner { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .predict-nums .p-ball { width: 36px; height: 36px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+// ===== CONFIG =====
+// ★★★ 在這裡貼上你的 GAS Web App URL ★★★
+const GAS_URL = '';
+// 範例: const GAS_URL = 'https://script.google.com/macros/s/xxxxxxx/exec';
+
+// ===== DEMO DATA GENERATOR =====
+function generateDemoData(count = 50) {
+  const data = [];
+  const now = Date.now();
+  for (let i = 0; i < count; i++) {
+    const nums = [];
+    const pool = Array.from({length: 80}, (_, j) => j + 1);
+    for (let j = 0; j < 20; j++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      nums.push(pool.splice(idx, 1)[0]);
+    }
+    nums.sort((a, b) => a - b);
+    const superNum = nums[Math.floor(Math.random() * 20)];
+    const total = nums.reduce((s, n) => s + n, 0);
+    data.push({
+      period: `115${String(4000 - i).padStart(5, '0')}`,
+      date: new Date(now - i * 5 * 60000).toLocaleString('zh-TW'),
+      numbers: nums,
+      superNumber: superNum,
+      total,
+      bigSmall: total > 810 ? '大' : total < 810 ? '小' : '和',
+      oddEven: total % 2 === 1 ? '單' : '雙',
+    });
+  }
+  return data;
+}
+
+// ===== ANALYSIS FUNCTIONS =====
+function analyzeFrequency(data, lastN = 30) {
+  const freq = {};
+  for (let i = 1; i <= 80; i++) freq[i] = 0;
+  const slice = data.slice(0, lastN);
+  slice.forEach(d => d.numbers.forEach(n => freq[n]++));
+  return freq;
+}
+
+function getHotCold(freq, threshold) {
+  const entries = Object.entries(freq).map(([k, v]) => [+k, v]);
+  const avg = entries.reduce((s, [_, v]) => s + v, 0) / entries.length;
+  const hot = entries.filter(([_, v]) => v >= avg * 1.3).map(([k]) => k);
+  const cold = entries.filter(([_, v]) => v <= avg * 0.7).map(([k]) => k);
+  const warm = entries.filter(([_, v]) => v > avg * 0.7 && v < avg * 1.3).map(([k]) => k);
+  return { hot, cold, warm, avg };
+}
+
+function predictNumbers(data, strategy = 'balanced', count = 10, analysisRange = 30) {
+  if (data.length < 5) {
+    const pool = Array.from({length: 80}, (_, i) => i + 1);
+    const picks = [];
+    for (let i = 0; i < count; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      picks.push(pool.splice(idx, 1)[0]);
+    }
+    return picks.sort((a, b) => a - b);
+  }
+
+  const freq = analyzeFrequency(data, analysisRange);
+  const { hot, cold } = getHotCold(freq);
+  
+  // Consecutive appearance tracking
+  const lastDrawn = data[0]?.numbers || [];
+  const prev2 = data[1]?.numbers || [];
+  const consecutive = lastDrawn.filter(n => prev2.includes(n));
+
+  let candidates = [];
+  
+  switch (strategy) {
+    case 'hot':
+      // Favor hot numbers
+      candidates = [...hot];
+      if (candidates.length < count) {
+        const rest = Array.from({length: 80}, (_, i) => i + 1).filter(n => !candidates.includes(n));
+        rest.sort((a, b) => (freq[b] || 0) - (freq[a] || 0));
+        candidates.push(...rest.slice(0, count - candidates.length));
+      }
+      break;
+    case 'cold':
+      // Favor cold numbers (due rebound)
+      candidates = [...cold];
+      if (candidates.length < count) {
+        const rest = Array.from({length: 80}, (_, i) => i + 1).filter(n => !candidates.includes(n));
+        rest.sort((a, b) => (freq[a] || 0) - (freq[b] || 0));
+        candidates.push(...rest.slice(0, count - candidates.length));
+      }
+      break;
+    case 'balanced':
+    default:
+      // Mix: 40% hot, 30% cold, 30% consecutive/random
+      const hotPick = Math.ceil(count * 0.4);
+      const coldPick = Math.ceil(count * 0.3);
+      const randPick = count - hotPick - coldPick;
+      
+      const shuffledHot = [...hot].sort(() => Math.random() - 0.5);
+      const shuffledCold = [...cold].sort(() => Math.random() - 0.5);
+      
+      candidates.push(...shuffledHot.slice(0, hotPick));
+      candidates.push(...shuffledCold.slice(0, coldPick));
+      
+      // Fill with consecutive or random
+      const used = new Set(candidates);
+      const consUnused = consecutive.filter(n => !used.has(n));
+      consUnused.sort(() => Math.random() - 0.5);
+      candidates.push(...consUnused.slice(0, randPick));
+      
+      if (candidates.length < count) {
+        const remaining = Array.from({length: 80}, (_, i) => i + 1).filter(n => !new Set(candidates).has(n));
+        remaining.sort(() => Math.random() - 0.5);
+        candidates.push(...remaining.slice(0, count - candidates.length));
+      }
+      break;
+  }
+  
+  return candidates.slice(0, count).sort((a, b) => a - b);
+}
+
+// ===== COMPONENTS =====
+
+function Header({ isConnected }) {
+  return (
+    <header className="app-header">
+      <div className="header-inner">
+        <div className="logo-area">
+          <div className="logo-icon">BB</div>
+          <div className="logo-text">
+            <h1>BINGO BINGO</h1>
+            <span>賓果賓果預測系統 v1.0</span>
+          </div>
+        </div>
+        <div className="gas-status">
+          <div className={`status-dot ${isConnected ? 'connected' : ''}`} />
+          {isConnected ? 'Google Sheets 已連線' : '未連線試算表'}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function TabBar({ tabs, active, onChange }) {
+  return (
+    <div className="tab-bar">
+      {tabs.map(t => (
+        <button
+          key={t.id}
+          className={`tab-btn ${active === t.id ? 'active' : ''}`}
+          onClick={() => onChange(t.id)}
+        >
+          {t.icon} {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ===== TAB: Dashboard =====
+function DashboardTab({ data }) {
+  const latest = data[0];
+  const freq = useMemo(() => analyzeFrequency(data, 30), [data]);
+  const { hot, cold, warm, avg } = useMemo(() => getHotCold(freq), [freq]);
+  
+  // Big/Small and Odd/Even streaks
+  const bigCount = data.slice(0, 20).filter(d => d.bigSmall === '大').length;
+  const oddCount = data.slice(0, 20).filter(d => d.oddEven === '單').length;
+
+  const getBallClass = (num) => {
+    if (hot.includes(num)) return 'hot';
+    if (cold.includes(num)) return 'cold';
+    return '';
+  };
+
+  return (
+    <div>
+      {/* Latest Draw */}
+      <div className="card">
+        <div className="card-title">
+          <span className="icon" style={{background: 'linear-gradient(135deg, var(--accent-gold), #e67e22)', color: '#000'}}>🎱</span>
+          最新開獎 — 第 {latest?.period || '---'} 期
+        </div>
+        {latest && (
+          <>
+            <div className="drawn-nums" style={{gap: '5px', justifyContent: 'center'}}>
+              {latest.numbers.map((n, i) => (
+                <span key={i} className={`mini-ball ${n === latest.superNumber ? 'super' : ''}`}
+                      style={{width: 30, height: 30, fontSize: 11}}>
+                  {String(n).padStart(2, '0')}
+                </span>
+              ))}
+            </div>
+            <div style={{textAlign: 'center', marginTop: 12, fontSize: 12, color: 'var(--text-secondary)'}}>
+              超級獎號: <strong style={{color: 'var(--accent-gold)'}}>{String(latest.superNumber).padStart(2, '0')}</strong>
+              {' | '}猜大小: <strong>{latest.bigSmall}</strong>
+              {' | '}猜單雙: <strong>{latest.oddEven}</strong>
+              {' | '}總和: <strong>{latest.total}</strong>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Quick Stats */}
+      <div className="stat-grid" style={{marginBottom: 16}}>
+        <div className="stat-box">
+          <div className="stat-value">{data.length}</div>
+          <div className="stat-label">歷史期數</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-value">{hot.length}</div>
+          <div className="stat-label">熱號數量 (近30期)</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-value">{bigCount}/{20 - bigCount}</div>
+          <div className="stat-label">大/小 (近20期)</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-value">{oddCount}/{20 - oddCount}</div>
+          <div className="stat-label">單/雙 (近20期)</div>
+        </div>
+      </div>
+
+      {/* Ball grid with hot/cold */}
+      <div className="card">
+        <div className="card-title">
+          <span className="icon" style={{background: 'rgba(34,211,238,0.15)', color: 'var(--accent-cyan)'}}>📊</span>
+          號碼溫度 (近30期)
+        </div>
+        <div className="ball-grid">
+          {Array.from({length: 80}, (_, i) => i + 1).map(n => (
+            <div key={n} className={`ball ${getBallClass(n)}`} title={`出現 ${freq[n]} 次`}>
+              {String(n).padStart(2, '0')}
+            </div>
+          ))}
+        </div>
+        <div className="legend">
+          <div className="legend-item">
+            <div className="legend-dot" style={{background: 'linear-gradient(135deg, #dc2626, #f97316)'}} />
+            熱號 ({hot.length}個)
+          </div>
+          <div className="legend-item">
+            <div className="legend-dot" style={{background: 'linear-gradient(135deg, #1e40af, #3b82f6)'}} />
+            冷號 ({cold.length}個)
+          </div>
+          <div className="legend-item">
+            <div className="legend-dot" style={{background: 'var(--bg-secondary)'}} />
+            一般
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB: Prediction =====
+function PredictionTab({ data }) {
+  const [strategy, setStrategy] = useState('balanced');
+  const [pickCount, setPickCount] = useState(10);
+  const [analysisRange, setAnalysisRange] = useState(30);
+  const [predicted, setPredicted] = useState(null);
+  const [key, setKey] = useState(0);
+
+  const doPrediction = () => {
+    const nums = predictNumbers(data, strategy, pickCount, analysisRange);
+    setPredicted(nums);
+    setKey(k => k + 1);
+  };
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title">
+          <span className="icon" style={{background: 'rgba(167,139,250,0.15)', color: 'var(--accent-purple)'}}>🔮</span>
+          號碼預測引擎
+        </div>
+        
+        <div className="input-row">
+          <select value={strategy} onChange={e => setStrategy(e.target.value)}>
+            <option value="balanced">📊 均衡策略 (熱+冷混合)</option>
+            <option value="hot">🔥 追熱號策略</option>
+            <option value="cold">❄️ 追冷號策略 (等反彈)</option>
+          </select>
+          <select value={pickCount} onChange={e => setPickCount(+e.target.value)}>
+            <option value="5">選 5 球</option>
+            <option value="8">選 8 球</option>
+            <option value="10">選 10 球</option>
+            <option value="12">選 12 球</option>
+            <option value="15">選 15 球</option>
+            <option value="20">選 20 球</option>
+          </select>
+        </div>
+        <div className="input-row">
+          <select value={analysisRange} onChange={e => setAnalysisRange(+e.target.value)}>
+            <option value="30">📊 分析近 30 期</option>
+            <option value="50">📊 分析近 50 期</option>
+            <option value="100">📊 分析近 100 期</option>
+            <option value="200">📊 分析近 200 期</option>
+          </select>
+        </div>
+        
+        <button className="btn btn-primary" onClick={doPrediction} style={{width: '100%', justifyContent: 'center'}}>
+          ⚡ 產生預測號碼
+        </button>
+
+        {predicted && (
+          <div className="predict-result" key={key}>
+            <div style={{fontSize: 13, color: 'var(--accent-purple)', marginBottom: 8}}>
+              {strategy === 'hot' ? '🔥 熱號追蹤' : strategy === 'cold' ? '❄️ 冷號反彈' : '📊 均衡推薦'} — 共 {predicted.length} 球 (分析近 {analysisRange} 期)
+            </div>
+            <div className="predict-nums">
+              {predicted.map((n, i) => (
+                <div key={i} className="p-ball" style={{animationDelay: `${i * 0.05}s`}}>
+                  {String(n).padStart(2, '0')}
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize: 11, color: 'var(--text-dim)', marginTop: 8}}>
+              基於近 {Math.min(data.length, analysisRange)} 期數據分析 | {new Date().toLocaleString('zh-TW')}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Big/Small & Odd/Even prediction */}
+      <TrendCard data={data} />
+    </div>
+  );
+}
+
+function TrendCard({ data }) {
+  const [trendRange, setTrendRange] = useState(10);
+  const slice = data.slice(0, trendRange);
+  const bigRate = slice.length > 0 ? slice.filter(d => d.bigSmall === '大').length / slice.length : 0;
+  const oddRate = slice.length > 0 ? slice.filter(d => d.oddEven === '單').length / slice.length : 0;
+
+  return (
+    <div className="card">
+      <div className="card-title" style={{justifyContent: 'space-between'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+          <span className="icon" style={{background: 'rgba(52,211,153,0.15)', color: 'var(--accent-green)'}}>🎯</span>
+          大小 / 單雙 趨勢預測
+        </div>
+        <select value={trendRange} onChange={e => setTrendRange(+e.target.value)}
+          style={{padding: '4px 10px', background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+            borderRadius: 6, color: 'var(--text-primary)', fontSize: 12, outline: 'none'}}>
+          <option value="5">近 5 期</option>
+          <option value="10">近 10 期</option>
+          <option value="20">近 20 期</option>
+          <option value="40">近 40 期</option>
+        </select>
+      </div>
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12}}>
+        <div className="stat-box">
+          <div style={{fontSize: 24, fontWeight: 900, color: bigRate > 0.5 ? 'var(--accent-red)' : 'var(--accent-cyan)'}}>
+            {bigRate > 0.6 ? '大' : bigRate < 0.4 ? '小' : '持平'}
+          </div>
+          <div className="stat-label">大 {(bigRate * 100).toFixed(0)}% | 小 {((1 - bigRate) * 100).toFixed(0)}%</div>
+          <div style={{fontSize: 10, color: 'var(--text-dim)', marginTop: 4}}>近 {trendRange} 期趨勢</div>
+        </div>
+        <div className="stat-box">
+          <div style={{fontSize: 24, fontWeight: 900, color: oddRate > 0.5 ? 'var(--accent-pink)' : 'var(--accent-green)'}}>
+            {oddRate > 0.6 ? '單' : oddRate < 0.4 ? '雙' : '持平'}
+          </div>
+          <div className="stat-label">單 {(oddRate * 100).toFixed(0)}% | 雙 {((1 - oddRate) * 100).toFixed(0)}%</div>
+          <div style={{fontSize: 10, color: 'var(--text-dim)', marginTop: 4}}>近 {trendRange} 期趨勢</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB: History =====
+function HistoryTab({ data }) {
+  const [page, setPage] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const displayData = data.slice(0, 200);
+  const pageSize = 25;
+  const totalPages = Math.ceil(displayData.length / pageSize);
+  const pageData = displayData.slice(page * pageSize, (page + 1) * pageSize);
+
+  const exportPDF = () => {
+    setExporting(true);
+    setTimeout(() => {
+      try {
+        const rows = displayData.map(d => [
+          d.period,
+          d.date,
+          d.numbers.map(n => String(n).padStart(2,'0')).join(' '),
+          String(d.superNumber).padStart(2,'0'),
+          d.bigSmall,
+          d.oddEven,
+          d.total
+        ]);
+
+        const pageW = 842; const pageH = 595; // A4 landscape
+        const margin = 40;
+        const rowH = 16; const headerH = 22;
+        const colWidths = [80, 110, 340, 45, 35, 35, 50];
+        const rowsPerPage = Math.floor((pageH - margin * 2 - headerH - 60) / rowH);
+        const totalPDFPages = Math.ceil(rows.length / rowsPerPage);
+
+        let pdf = '%PDF-1.4\n';
+        const objects = [];
+        const addObj = (content) => { objects.push(content); return objects.length; };
+
+        // Catalog
+        addObj('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj');
+        // Pages placeholder
+        addObj(''); // will be replaced
+
+        // Font
+        const fontId = addObj(`${objects.length + 1} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj`);
+        const fontBoldId = addObj(`${objects.length + 1} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj`);
+
+        const pageIds = [];
+
+        for (let p = 0; p < totalPDFPages; p++) {
+          const pageRows = rows.slice(p * rowsPerPage, (p + 1) * rowsPerPage);
+          
+          let stream = '';
+          // Title
+          stream += `BT /F2 14 Tf ${margin} ${pageH - margin} Td (BINGO BINGO - History Record  Page ${p+1}/${totalPDFPages}) Tj ET\n`;
+          stream += `BT /F1 8 Tf ${margin} ${pageH - margin - 16} Td (Export: ${new Date().toLocaleString('zh-TW')}  |  Total: ${rows.length} draws) Tj ET\n`;
+
+          let y = pageH - margin - 45;
+
+          // Header bg
+          stream += `0.15 0.18 0.27 rg ${margin} ${y - 4} ${pageW - margin * 2} ${headerH} re f\n`;
+          const headers = ['Period', 'Time', 'Numbers', 'Super', 'B/S', 'O/E', 'Sum'];
+          let x = margin + 4;
+          headers.forEach((h, i) => {
+            stream += `BT /F2 8 Tf 1 1 1 rg ${x} ${y + 4} Td (${h}) Tj ET\n`;
+            x += colWidths[i];
+          });
+          y -= headerH;
+
+          // Data rows
+          pageRows.forEach((row, ri) => {
+            if (ri % 2 === 0) {
+              stream += `0.92 0.93 0.95 rg ${margin} ${y - 4} ${pageW - margin * 2} ${rowH} re f\n`;
+            }
+            x = margin + 4;
+            row.forEach((cell, ci) => {
+              const val = String(cell).replace(/[()\\]/g, '');
+              const fontSize = ci === 2 ? 6 : 7;
+              stream += `BT /F1 ${fontSize} Tf 0.1 0.1 0.1 rg ${x} ${y + 2} Td (${val}) Tj ET\n`;
+              x += colWidths[ci];
+            });
+            y -= rowH;
+          });
+
+          const streamId = addObj(`${objects.length + 1} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}endstream\nendobj`);
+          const pgId = addObj(`${objects.length + 1} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Contents ${streamId} 0 R /Resources << /Font << /F1 ${fontId} 0 R /F2 ${fontBoldId} 0 R >> >> >>\nendobj`);
+          pageIds.push(pgId);
+        }
+
+        // Update Pages object
+        objects[1] = `2 0 obj\n<< /Type /Pages /Kids [${pageIds.map(id => id + ' 0 R').join(' ')}] /Count ${pageIds.length} >>\nendobj`;
+
+        // Build PDF
+        pdf = '%PDF-1.4\n';
+        const offsets = [];
+        objects.forEach((obj, i) => {
+          offsets.push(pdf.length);
+          if (!obj.startsWith(`${i+1} 0 obj`)) {
+            pdf += `${i+1} 0 obj\n${obj}\nendobj\n`;
+          } else {
+            pdf += obj + '\n';
+          }
+        });
+
+        const xrefOffset = pdf.length;
+        pdf += 'xref\n';
+        pdf += `0 ${objects.length + 1}\n`;
+        pdf += '0000000000 65535 f \n';
+        offsets.forEach(off => {
+          pdf += String(off).padStart(10, '0') + ' 00000 n \n';
+        });
+        pdf += 'trailer\n';
+        pdf += `<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
+        pdf += 'startxref\n';
+        pdf += xrefOffset + '\n';
+        pdf += '%%EOF';
+
+        const blob = new Blob([pdf], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `BingoBingo_History_${new Date().toISOString().slice(0,10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch(e) {
+        console.error('PDF export error:', e);
+        alert('匯出失敗: ' + e.message);
+      }
+      setExporting(false);
+    }, 100);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title" style={{justifyContent: 'space-between'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+          <span className="icon" style={{background: 'rgba(246,195,67,0.15)', color: 'var(--accent-gold)'}}>📋</span>
+          開獎歷史紀錄 (近 {displayData.length} 期)
+        </div>
+        <button className="btn btn-primary" onClick={exportPDF} disabled={exporting} style={{padding: '6px 14px', fontSize: 12}}>
+          {exporting ? '⏳ 匯出中...' : '📄 匯出 PDF'}
+        </button>
+      </div>
+      <div className="table-wrap" style={{maxHeight: '60vh', overflowY: 'auto'}}>
+        <table className="history-table">
+          <thead>
+            <tr>
+              <th>期號</th>
+              <th>開獎時間</th>
+              <th>開獎號碼</th>
+              <th>超級</th>
+              <th>大小</th>
+              <th>單雙</th>
+              <th>總和</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageData.map((d, i) => (
+              <tr key={i}>
+                <td style={{fontFamily: 'JetBrains Mono', fontSize: 11, whiteSpace: 'nowrap'}}>{d.period}</td>
+                <td style={{fontSize: 11, whiteSpace: 'nowrap', color: 'var(--text-secondary)'}}>{d.date}</td>
+                <td>
+                  <div className="drawn-nums">
+                    {d.numbers.map((n, j) => (
+                      <span key={j} className={`mini-ball ${n === d.superNumber ? 'super' : ''}`}>
+                        {String(n).padStart(2, '0')}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td style={{fontFamily: 'JetBrains Mono', fontSize: 13, color: 'var(--accent-gold)', fontWeight: 700}}>
+                  {String(d.superNumber).padStart(2, '0')}
+                </td>
+                <td style={{fontWeight: 700, color: d.bigSmall === '大' ? 'var(--accent-red)' : 'var(--accent-cyan)'}}>
+                  {d.bigSmall}
+                </td>
+                <td style={{fontWeight: 700, color: d.oddEven === '單' ? 'var(--accent-pink)' : 'var(--accent-green)'}}>
+                  {d.oddEven}
+                </td>
+                <td style={{fontFamily: 'JetBrains Mono', fontSize: 12}}>{d.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 12}}>
+        <button className="btn btn-secondary" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
+          ← 上一頁
+        </button>
+        <span style={{padding: '10px 12px', fontSize: 12, color: 'var(--text-secondary)'}}>
+          {page + 1} / {totalPages}
+        </span>
+        <button className="btn btn-secondary" onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1}>
+          下一頁 →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB: Frequency =====
+function FrequencyTab({ data }) {
+  const [period, setPeriod] = useState(30);
+  const freq = useMemo(() => analyzeFrequency(data, period), [data, period]);
+  const maxFreq = Math.max(...Object.values(freq));
+  
+  const sorted = Object.entries(freq)
+    .map(([k, v]) => [+k, v])
+    .sort((a, b) => b[1] - a[1]);
+
+  const top10 = sorted.slice(0, 10);
+  const bottom10 = sorted.slice(-10).reverse();
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title">
+          <span className="icon" style={{background: 'rgba(244,114,182,0.15)', color: 'var(--accent-pink)'}}>📈</span>
+          號碼出現頻率
+        </div>
+        <div className="input-row" style={{marginBottom: 16}}>
+          <select value={period} onChange={e => setPeriod(+e.target.value)} style={{flex: 'none', width: 'auto'}}>
+            <option value="10">近 10 期</option>
+            <option value="20">近 20 期</option>
+            <option value="30">近 30 期</option>
+            <option value="50">近 50 期</option>
+            <option value="999">全部</option>
+          </select>
+        </div>
+        
+        <div style={{marginBottom: 20}}>
+          <div style={{fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--accent-red)'}}>🔥 最熱 Top 10</div>
+          {top10.map(([num, cnt]) => (
+            <div key={num} className="freq-bar-wrap">
+              <div className="freq-num">{String(num).padStart(2, '0')}</div>
+              <div className="freq-bar">
+                <div className="freq-bar-fill" style={{
+                  width: `${(cnt / maxFreq) * 100}%`,
+                  background: `linear-gradient(90deg, #dc2626, #f97316)`,
+                }}>
+                  {cnt}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <div style={{fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--accent-cyan)'}}>❄️ 最冷 Bottom 10</div>
+          {bottom10.map(([num, cnt]) => (
+            <div key={num} className="freq-bar-wrap">
+              <div className="freq-num">{String(num).padStart(2, '0')}</div>
+              <div className="freq-bar">
+                <div className="freq-bar-fill" style={{
+                  width: `${Math.max((cnt / maxFreq) * 100, 3)}%`,
+                  background: `linear-gradient(90deg, #1e40af, #3b82f6)`,
+                }}>
+                  {cnt}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== MAIN APP =====
+function App() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [data, setData] = useState([]);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Sync from GAS
+  const syncData = useCallback(async () => {
+    if (!GAS_URL) return;
+    try {
+      const resp = await fetch(`${GAS_URL}?action=getData&limit=500`);
+      const json = await resp.json();
+      if (json.data && json.data.length > 0) {
+        setData(json.data);
+        setIsConnected(true);
+        return;
+      }
+    } catch (e) {
+      console.error('Sync error:', e);
+    }
+    setIsConnected(false);
+  }, []);
+
+  // Init: try GAS first, fallback to demo
+  useEffect(() => {
+    if (GAS_URL) {
+      syncData();
+    } else {
+      setData(generateDemoData(200));
+    }
+  }, []);
+
+  // Auto refresh every 5 minutes if connected
+  useEffect(() => {
+    if (!GAS_URL) return;
+    const timer = setInterval(syncData, 5 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [syncData]);
+
+  const tabs = [
+    { id: 'dashboard', label: '總覽', icon: '📊' },
+    { id: 'prediction', label: '預測', icon: '🔮' },
+    { id: 'history', label: '歷史', icon: '📋' },
+    { id: 'frequency', label: '頻率', icon: '📈' },
+  ];
+
+  return (
+    <div>
+      <Header isConnected={isConnected} />
+      <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} />
+      <div className="main-content">
+        {activeTab === 'dashboard' && <DashboardTab data={data} />}
+        {activeTab === 'prediction' && <PredictionTab data={data} />}
+        {activeTab === 'history' && <HistoryTab data={data} />}
+        {activeTab === 'frequency' && <FrequencyTab data={data} />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
