@@ -961,115 +961,63 @@ function HistoryTab({ data }) {
     setExporting(true);
     setTimeout(() => {
       try {
-        const rows = displayData.map(d => [
-          d.period,
-          d.date,
-          d.numbers.map(n => String(n).padStart(2,'0')).join(' '),
-          String(d.superNumber).padStart(2,'0'),
-          d.bigSmall,
-          d.oddEven,
-          d.total
-        ]);
+        // 用 HTML 建立列印頁面（支援中文）
+        const now = new Date();
+        const rocYear = now.getFullYear() - 1911;
+        const dateStr = rocYear + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 
-        const pageW = 842; const pageH = 595; // A4 landscape
-        const margin = 40;
-        const rowH = 16; const headerH = 22;
-        const colWidths = [80, 110, 340, 45, 35, 35, 50];
-        const rowsPerPage = Math.floor((pageH - margin * 2 - headerH - 60) / rowH);
-        const totalPDFPages = Math.ceil(rows.length / rowsPerPage);
+        let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>BINGO BINGO 開獎歷史紀錄</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:#0a0e1a;color:#f1f5f9;padding:20px}
+h1{font-size:18px;color:#f6c343;margin-bottom:4px}
+.sub{font-size:11px;color:#94a3b8;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#1a2035;color:#f6c343;padding:8px 4px;text-align:center;border-bottom:2px solid #f6c343;font-weight:700}
+td{padding:6px 4px;text-align:center;border-bottom:1px solid #1e293b}
+tr:nth-child(even) td{background:#111827}
+.nums{font-family:monospace;font-size:10px;letter-spacing:1px}
+.super{color:#f6c343;font-weight:900;font-size:13px}
+.big{color:#f87171} .small{color:#22d3ee}
+.odd{color:#f472b6} .even{color:#34d399}
+@media print{body{background:#fff;color:#000}th{background:#333;color:#fff}td{border-bottom:1px solid #ccc}tr:nth-child(even) td{background:#f5f5f5}.big,.small,.odd,.even,.super{color:#000}}
+</style></head><body>
+<h1>BINGO BINGO 開獎歷史紀錄</h1>
+<div class="sub">匯出時間: ${dateStr} ｜ 共 ${displayData.length} 期</div>
+<table><thead><tr>
+<th>期號</th><th>開獎時間</th><th>開獎號碼</th><th>超級</th><th>大小</th><th>單雙</th><th>總和</th>
+</tr></thead><tbody>`;
 
-        let pdf = '%PDF-1.4\n';
-        const objects = [];
-        const addObj = (content) => { objects.push(content); return objects.length; };
+        displayData.forEach(d => {
+          const numsStr = d.numbers.map(n => {
+            const s = String(n).padStart(2,'0');
+            if (n === d.superNumber) return '<b style="color:#f6c343;background:#333;border-radius:50%;padding:1px 3px">' + s + '</b>';
+            return s;
+          }).join(' ');
 
-        // Catalog
-        addObj('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj');
-        // Pages placeholder
-        addObj(''); // will be replaced
-
-        // Font
-        const fontId = addObj(`${objects.length + 1} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj`);
-        const fontBoldId = addObj(`${objects.length + 1} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj`);
-
-        const pageIds = [];
-
-        for (let p = 0; p < totalPDFPages; p++) {
-          const pageRows = rows.slice(p * rowsPerPage, (p + 1) * rowsPerPage);
-          
-          let stream = '';
-          // Title
-          stream += `BT /F2 14 Tf ${margin} ${pageH - margin} Td (BINGO BINGO - History Record  Page ${p+1}/${totalPDFPages}) Tj ET\n`;
-          stream += `BT /F1 8 Tf ${margin} ${pageH - margin - 16} Td (Export: ${new Date().toLocaleString('zh-TW')}  |  Total: ${rows.length} draws) Tj ET\n`;
-
-          let y = pageH - margin - 45;
-
-          // Header bg
-          stream += `0.15 0.18 0.27 rg ${margin} ${y - 4} ${pageW - margin * 2} ${headerH} re f\n`;
-          const headers = ['Period', 'Time', 'Numbers', 'Super', 'B/S', 'O/E', 'Sum'];
-          let x = margin + 4;
-          headers.forEach((h, i) => {
-            stream += `BT /F2 8 Tf 1 1 1 rg ${x} ${y + 4} Td (${h}) Tj ET\n`;
-            x += colWidths[i];
-          });
-          y -= headerH;
-
-          // Data rows
-          pageRows.forEach((row, ri) => {
-            if (ri % 2 === 0) {
-              stream += `0.92 0.93 0.95 rg ${margin} ${y - 4} ${pageW - margin * 2} ${rowH} re f\n`;
-            }
-            x = margin + 4;
-            row.forEach((cell, ci) => {
-              const val = String(cell).replace(/[()\\]/g, '');
-              const fontSize = ci === 2 ? 6 : 7;
-              stream += `BT /F1 ${fontSize} Tf 0.1 0.1 0.1 rg ${x} ${y + 2} Td (${val}) Tj ET\n`;
-              x += colWidths[ci];
-            });
-            y -= rowH;
-          });
-
-          const streamId = addObj(`${objects.length + 1} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}endstream\nendobj`);
-          const pgId = addObj(`${objects.length + 1} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Contents ${streamId} 0 R /Resources << /Font << /F1 ${fontId} 0 R /F2 ${fontBoldId} 0 R >> >> >>\nendobj`);
-          pageIds.push(pgId);
-        }
-
-        // Update Pages object
-        objects[1] = `2 0 obj\n<< /Type /Pages /Kids [${pageIds.map(id => id + ' 0 R').join(' ')}] /Count ${pageIds.length} >>\nendobj`;
-
-        // Build PDF
-        pdf = '%PDF-1.4\n';
-        const offsets = [];
-        objects.forEach((obj, i) => {
-          offsets.push(pdf.length);
-          if (!obj.startsWith(`${i+1} 0 obj`)) {
-            pdf += `${i+1} 0 obj\n${obj}\nendobj\n`;
-          } else {
-            pdf += obj + '\n';
-          }
+          html += `<tr>
+<td>${d.period}</td>
+<td>${d.date}</td>
+<td class="nums">${numsStr}</td>
+<td class="super">${String(d.superNumber).padStart(2,'0')}</td>
+<td class="${d.bigSmall === '大' ? 'big' : 'small'}">${d.bigSmall}</td>
+<td class="${d.oddEven === '單' ? 'odd' : 'even'}">${d.oddEven}</td>
+<td>${d.total}</td>
+</tr>`;
         });
 
-        const xrefOffset = pdf.length;
-        pdf += 'xref\n';
-        pdf += `0 ${objects.length + 1}\n`;
-        pdf += '0000000000 65535 f \n';
-        offsets.forEach(off => {
-          pdf += String(off).padStart(10, '0') + ' 00000 n \n';
-        });
-        pdf += 'trailer\n';
-        pdf += `<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
-        pdf += 'startxref\n';
-        pdf += xrefOffset + '\n';
-        pdf += '%%EOF';
+        html += '</tbody></table></body></html>';
 
-        const blob = new Blob([pdf], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `BingoBingo_History_${new Date().toISOString().slice(0,10)}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
+        // 開新視窗列印（使用者可選擇存成 PDF）
+        const printWin = window.open('', '_blank');
+        printWin.document.write(html);
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(() => { printWin.print(); }, 500);
+
       } catch(e) {
-        console.error('PDF export error:', e);
+        console.error('匯出失敗:', e);
         alert('匯出失敗: ' + e.message);
       }
       setExporting(false);
